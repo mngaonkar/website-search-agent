@@ -85,9 +85,12 @@ class QueryDatabaseTool(BaseTool):
         for i, result in enumerate(results["documents"][0]):
             # print(f"Result {i+1}:")
             # print(f"{result[:100]}... (Distance: {results['distances'][0][i]})")
-            # print(f"metadata: {results['metadatas'][0][i]}")
-            results_str += f"{results['metadatas'][0][i]["link"]}\n"
+            distance = results['distances'][0][i]
+            if distance < 1:
+                results_str += f"{results['metadatas'][0][i]["link"]}\n"
         
+        if results_str == "":
+            results_str = "No results found."
         return results_str.strip()  # Return the results as a string
         
 

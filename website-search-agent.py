@@ -81,16 +81,10 @@ async def main():
         result = await graph.ainvoke(initial_state, debug=False)
 
         # Print the result
-        print(f"Agent> {result["messages"][-1].content}")
-
-        # Get all the blogs
-        # result = await graph.ainvoke(
-        #     GraphState(query="get all blogs from https://www.thecloudcast.net"), debug=False
-        # )
-
-        # result = await graph.ainvoke(
-        #     GraphState(query="podcast on AI infrastructure and security"), debug=False
-        # )
+        if isinstance(result["messages"][-1], ToolMessage):
+            print(f"Agent> {result["messages"][-1].content}")
+        else:
+            print(f"Agent> No result found.")
 
 if __name__ == "__main__":
     asyncio.run(main())
