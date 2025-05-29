@@ -1,5 +1,5 @@
-from common.common import GraphState
 from bs4 import BeautifulSoup
+from common.logging_config import logger
 
 def atom_feed_find_func(html_content: str) -> list[str]:
     feed_links = []
@@ -8,6 +8,6 @@ def atom_feed_find_func(html_content: str) -> list[str]:
     for link in soup.find_all('a', href=lambda x: x and 'feed' in x.lower()):
         feed_links.append(link.get('href'))
     
-    print(f"Found {len(feed_links)} feed links.")
+    logger.info(f"Found {len(feed_links)} feed links.")
     return feed_links
 

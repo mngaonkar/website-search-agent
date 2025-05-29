@@ -4,9 +4,7 @@ from langchain.tools import BaseTool, StructuredTool, tool
 from typing import Type, Optional, Any
 from playwright.sync_api import sync_playwright
 import re
-import logging
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
+from common.logging_config import logger
 
 from langchain.callbacks.manager import (
     AsyncCallbackManagerForToolRun,
@@ -28,13 +26,15 @@ class VisitWebPageSyncTool(BaseTool):
         logger.info(f"Visiting webpage: {url} with clean_flag={clean_flag}")
         with sync_playwright() as p:
             try:
-                browser = p.chromium.launch(headless=False)
-                print("browser = ", browser)
+                browser = p.chromium.launch(headless=True)
                 page = browser.new_page()
-                print("page = ", page)
-                page.goto(url, timeout=30000)  # Set a timeout for navigation
+                try:
+                    page.goto(url, timeout=30000)  # Set a timeout for navigation
+                except Exception as e:
+                    logger.error(f"Error navigating to {url}: {str(e)}")
+                    return ""
+                
                 title = page.title()
-                print("page title:", title)
                 
                 # Extract the text content of the page
                 content = page.content()

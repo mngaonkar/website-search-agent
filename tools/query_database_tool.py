@@ -6,6 +6,7 @@ import chromadb
 from langchain_huggingface import HuggingFaceEmbeddings
 from dotenv import load_dotenv
 import os
+from common.logging_config import logger
 
 load_dotenv()
 MAX_RESULTS = os.environ.get("MAX_RESULTS")
@@ -39,8 +40,7 @@ class QueryDatabaseTool(BaseTool):
         results = self._query_vector_store(query)
         if not results or not results["documents"]:
             return None
-        self._print_search_results(results)
-        return results["documents"][0]
+        return self._return_search_results(results)
 
     async def _arun(self, query: str) -> str:
         """
@@ -64,14 +64,14 @@ class QueryDatabaseTool(BaseTool):
 
         # Verify the client is initialized by listing collections (optional)
         self.collections = self.client.list_collections()
-        print(f"Collections in the database: {self.collections}")
+        logger.info(f"Collections in the database: {self.collections}")
     
     def _query_vector_store(self, query: str) -> list:
         """Function to query the vector store."""
         if len(self.collections) == 0:
             raise ValueError("No collections found in the database. Ensure the database is initialized correctly.")
         
-        print(f"Collections in the database: {len(self.collections)}")
+        logger.info(f"Collections in the database: {len(self.collections)}")
         results = self.client.get_collection(self.collections[0].name).query(
             query_embeddings=[self.embedding_model.embed_query(query)],  # Convert query to embeddings
             n_results=self.max_results  # Number of results to return
@@ -79,14 +79,16 @@ class QueryDatabaseTool(BaseTool):
 
         return results
 
-    def _print_search_results(self, results) -> None:
+    def _return_search_results(self, results) -> None:
         """Function to print search results."""
-        print("Search results:")
+        results_str = ""
         for i, result in enumerate(results["documents"][0]):
-            print(f"Result {i+1}:")
-            print(f"{result[:100]}... (Distance: {results['distances'][0][i]})")
-            print(f"metadata: {results['metadatas'][0][i]}")
+            # print(f"Result {i+1}:")
+            # print(f"{result[:100]}... (Distance: {results['distances'][0][i]})")
+            # print(f"metadata: {results['metadatas'][0][i]}")
+            results_str += f"{results['metadatas'][0][i]["link"]}\n"
         
+        return results_str.strip()  # Return the results as a string
         
 
 if __name__ == "__main__":

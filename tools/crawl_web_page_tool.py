@@ -4,10 +4,7 @@ from typing import Optional, List, Type
 from pydantic import BaseModel, Field
 from langchain.tools import BaseTool
 import asyncio
-import logging
-
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
+from common.logging_config import logger
 
 class CrawlWebPageSyncToolInput(BaseModel):
     url: str = Field(description="Web page URL to crawl")
@@ -61,7 +58,7 @@ async def crawl_web_page(url: str, max_depth: int = 2) -> list:
                             links.append(full_url)
                             crawl(full_url, depth + 1)
             except Exception as e:
-                logger.info(f"Error visiting {url}: {e}")
+                logger.error(f"Error visiting {url}: {e}")
             finally:
                 await browser.close()
 

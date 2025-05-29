@@ -13,10 +13,7 @@ from tools.crawl_web_page_tool import CrawlWebPageSyncTool
 from tools.query_database_tool import QueryDatabaseTool
 from functions.initialize_database import initialize_database
 import asyncio
-import logging
-
-logger = logging.getLogger(__name__)
-logging.basicConfig(level=logging.INFO)
+from common.logging_config import logger
 
 load_dotenv()
 
@@ -37,7 +34,7 @@ async def main():
             [HumanMessage(content=state["query"])]
         )
         state["messages"] = [response]
-        print(f"LLM Response: {response}")
+        logger.info(f"LLM Response: {response}")
         return state
 
     def decide_next_node(state: GraphState) -> str:
@@ -70,14 +67,30 @@ async def main():
 
     graph.get_graph().print_ascii()
 
-    # Get all the blogs
-    result = await graph.ainvoke(
-        GraphState(query="get all blogs from https://www.thecloudcast.net"), debug=False
-    )
+    while True:
+        # Get user input
+        query = input("User> ")
+        if query.lower() == 'exit' or query.lower() == 'quit':
+            print("Exiting the program.")
+            break
 
-    result = await graph.ainvoke(
-        GraphState(query="query all blogs having reference to data management"), debug=False
-    )
+        # Create the initial state
+        initial_state = GraphState(query=query, messages=[HumanMessage(content=query)])
+
+        # Invoke the graph with the initial state
+        result = await graph.ainvoke(initial_state, debug=False)
+
+        # Print the result
+        print(f"Agent> {result["messages"][-1].content}")
+
+        # Get all the blogs
+        # result = await graph.ainvoke(
+        #     GraphState(query="get all blogs from https://www.thecloudcast.net"), debug=False
+        # )
+
+        # result = await graph.ainvoke(
+        #     GraphState(query="podcast on AI infrastructure and security"), debug=False
+        # )
 
 if __name__ == "__main__":
     asyncio.run(main())

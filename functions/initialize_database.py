@@ -7,9 +7,8 @@ from langchain_huggingface import HuggingFaceEmbeddings
 from dotenv import load_dotenv
 import logging
 from common.common import GraphState
-
-logger = logging.getLogger(__name__)
-logging.basicConfig(level=logging.INFO)
+import shutil
+from common.logging_config import logger
 
 load_dotenv()
 
@@ -22,7 +21,7 @@ def initialize_database(state: GraphState) -> None:
     Initializes the database by loading documents retrieved by web crawler.
     """
     doc_location = DOC_LOCATION
-    
+
     # Create a text splitter
     text_splitter = RecursiveCharacterTextSplitter(
         chunk_size=CHUNK_SIZE, 
@@ -57,6 +56,12 @@ def initialize_database(state: GraphState) -> None:
     
     doc_list = [Document(page_content=json.dumps(doc["text"]), metadata=doc["metadata"]) for doc in documents]
 
+    if os.path.exists("chroma_db"):
+        logger.warn("Chroma database already exists, removing it.")
+        # Remove the existing Chroma database directory
+        shutil.rmtree("chroma_db")
+
+
     # Initialize the vector store with the documents
     embeddings = HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2")
     vector_store = Chroma.from_documents(
@@ -66,5 +71,5 @@ def initialize_database(state: GraphState) -> None:
     )
 
 if __name__ == "__main__":
-    initialize_database()
-    print("Database initialized successfully.")
+    initialize_database(None)
+    logger.info("Database initialized successfully.")
