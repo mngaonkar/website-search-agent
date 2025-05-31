@@ -13,7 +13,7 @@ from langchain.callbacks.manager import (
 
 class VisitWebPageSyncToolInput(BaseModel):
     url: str = Field(description="Web page URL to visit")
-    clean_flag: Optional[bool] = Field(default=True, description="Clean web page text content, this helps to get text from dynamic web page.")
+    clean_flag: Optional[bool] = Field(default=False, description="Clean web page text content, this helps to get text from dynamic web page.")
 
 class VisitWebPageSyncTool(BaseTool):
     name: str = "visit_webpage"
@@ -21,7 +21,7 @@ class VisitWebPageSyncTool(BaseTool):
     args_schema: Type[BaseModel] = VisitWebPageSyncToolInput
 
     def _run(self, url: str, 
-             clean_flag=True, 
+             clean_flag=False, 
              run_manager: Optional[CallbackManagerForToolRun] = None) -> str:
         logger.info(f"Visiting webpage: {url} with clean_flag={clean_flag}")
         with sync_playwright() as p:
@@ -71,6 +71,6 @@ class VisitWebPageSyncTool(BaseTool):
                 raise Exception(f"Error visiting webpage: {str(e)}")
             
     def _arun(self, url: str, 
-             clean_flag=True, 
+             clean_flag=False, 
              run_manager: Optional[AsyncCallbackManagerForToolRun] = None) -> str:
         raise NotImplementedError("visit_webpage does not support async")
