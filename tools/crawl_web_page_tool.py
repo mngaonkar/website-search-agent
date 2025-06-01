@@ -41,7 +41,7 @@ async def crawl_web_page(url: str, max_depth: int = 2) -> list:
         visited.add(url)
 
         async with async_playwright() as p:
-            browser = await p.chromium.launch(headless=False)
+            browser = await p.chromium.launch(headless=True)
             page = await browser.new_page()
             try:
                 await page.goto(url, timeout=30000)
@@ -56,7 +56,7 @@ async def crawl_web_page(url: str, max_depth: int = 2) -> list:
                         parsed_url = urlparse(full_url)
                         if parsed_url.scheme in ['http', 'https']:
                             links.append(full_url)
-                            crawl(full_url, depth + 1)
+                            await crawl(full_url, depth + 1)
             except Exception as e:
                 logger.error(f"Error visiting {url}: {e}")
             finally:

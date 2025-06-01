@@ -32,6 +32,7 @@ class QueryDatabaseTool(BaseTool):
     client: chromadb.PersistentClient = None # ChromaDB client instance
     collections: list = None  # List of collections in the database
     embedding_model: Optional[Type] = None  # Embeddings model, if needed
+    db_path: Optional[str] = None  # Path to the database
 
     def _run(self, query: str) -> str:
         """
@@ -58,16 +59,20 @@ class QueryDatabaseTool(BaseTool):
         super().__init__()
         self.max_results = max_results
         if db_path is None:
-            db_path = "chroma_db"
-        self.client = chromadb.PersistentClient(path=db_path)
+            self.db_path = "chroma_db"
+        else:
+            self.db_path = db_path
+
         self.embedding_model = HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2")
+    
+    def _query_vector_store(self, query: str) -> list:
+        """Function to query the vector store."""
+        self.client = chromadb.PersistentClient(path=self.db_path)
 
         # Verify the client is initialized by listing collections (optional)
         self.collections = self.client.list_collections()
         logger.info(f"Collections in the database: {self.collections}")
-    
-    def _query_vector_store(self, query: str) -> list:
-        """Function to query the vector store."""
+
         if len(self.collections) == 0:
             raise ValueError("No collections found in the database. Ensure the database is initialized correctly.")
         
