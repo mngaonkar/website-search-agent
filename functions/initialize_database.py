@@ -27,8 +27,7 @@ def initialize_database(state: GraphState) -> None:
     logger.info(f"Creating text splitter with chunk size {CHUNK_SIZE} and overlap {CHUNK_OVERLAP}.")
     text_splitter = RecursiveCharacterTextSplitter(
         chunk_size=CHUNK_SIZE, 
-        chunk_overlap=CHUNK_OVERLAP,
-        separators=["\n\n", "\n", " ", ""])
+        chunk_overlap=CHUNK_OVERLAP)
 
     # Load file index
     logger.info(f"Loading blog index from {doc_location}/blog_index.json")

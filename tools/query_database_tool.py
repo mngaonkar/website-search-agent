@@ -7,11 +7,13 @@ from langchain_huggingface import HuggingFaceEmbeddings
 from dotenv import load_dotenv
 import os
 from common.logging_config import logger
+import bm25s
+import json
 
 load_dotenv()
 MAX_RESULTS = os.environ.get("MAX_RESULTS")
 EMBEDDING_MODEL = os.environ.get("EMBEDDING_MODEL", "sentence-transformers/all-mpnet-base-v2")
-
+DOC_LOCATION = os.environ.get("DOC_LOCATION", "transcripts")
 
 class QueryDatabaseToolInput(BaseModel):
     """
@@ -35,15 +37,16 @@ class QueryDatabaseTool(BaseTool):
     collections: list = None  # List of collections in the database
     embedding_model: Optional[Type] = None  # Embeddings model, if needed
     db_path: Optional[str] = None  # Path to the database
+    bm25_model: Optional[Type] = None  # BM25 model for lexical search
 
     def _run(self, query: str) -> str:
         """
         Run the tool with the given query.
         """
-        results = self._query_vector_store(query)
-        if not results or not results["documents"]:
+        sparse_results, dense_results = self._query_vector_store(query)
+        if not sparse_results or not dense_results["documents"]:
             return None
-        return self._return_search_results(results)
+        return self._return_search_results(sparse_results, dense_results)
 
     async def _arun(self, query: str) -> str:
         """
@@ -65,10 +68,48 @@ class QueryDatabaseTool(BaseTool):
         else:
             self.db_path = db_path
 
+        # Dense vector embeddings model for semantic search
         self.embedding_model = HuggingFaceEmbeddings(model_name=EMBEDDING_MODEL)
+
+        # Load documents from the blog index file
+        # Save blog index and text associated as JSON text dump in document
+        documents = []
+        blog_index_path = os.path.join(DOC_LOCATION, "blog_index.json")
+        if not os.path.exists(blog_index_path):
+            raise FileNotFoundError(f"Blog index file does not exist: {blog_index_path}")
+        
+        with open(blog_index_path, "r") as f:
+            blog_index = json.load(f)
+            for key, value in blog_index.items():
+                text = open(os.path.join(DOC_LOCATION, key), 'r').read()
+                value["text"] = text  # Add the text to the value
+                value_text = json.dumps(value)
+                documents.append(value_text)
+
+        # Sparse vector embeddings model with BM25 search for lexical search
+        self.bm25_model = bm25s.BM25(
+            corpus=documents
+        )
+        self.bm25_model.index(bm25s.tokenize(documents))
     
     def _query_vector_store(self, query: str) -> list:
         """Function to query the vector store."""
+
+        # Query the BM25 model for lexical search
+        sparse_results = {}
+        results, scores = self.bm25_model.retrieve(bm25s.tokenize(query), k=self.max_results)
+        for i in range(len(results[0])):
+            try:
+                result_json = json.loads(results[0, i])
+                link = result_json.get("link", None)
+                if link is not None:
+                    sparse_results[link] = {"link": link, "score": scores[0, i]}
+            except json.JSONDecodeError as e:
+                logger.error(f"Error decoding JSON from BM25 result: {e}")
+                continue
+        logger.info(f"BM25 search results: {sparse_results}")
+
+        # Query the ChromaDB vector store for semantic search
         self.client = chromadb.PersistentClient(path=self.db_path)
 
         # Verify the client is initialized by listing collections (optional)
@@ -79,26 +120,39 @@ class QueryDatabaseTool(BaseTool):
             raise ValueError("No collections found in the database. Ensure the database is initialized correctly.")
         
         logger.info(f"Collections in the database: {len(self.collections)}")
-        results = self.client.get_collection(self.collections[0].name).query(
+        dense_results = self.client.get_collection(self.collections[0].name).query(
             query_embeddings=[self.embedding_model.embed_query(query)],  # Convert query to embeddings
             n_results=self.max_results  # Number of results to return
         )
 
-        return results
+        return sparse_results, dense_results
 
-    def _return_search_results(self, results) -> None:
+    def _return_search_results(self, sparse_results: dict, dense_results: dict) -> None:
         """Function to print search results."""
+        links = set()
+        logger.info(f"Processing sparse results: {sparse_results}")
         results_str = ""
-        for i, result in enumerate(results["documents"][0]):
-            # print(f"Result {i+1}:")
-            # print(f"{result[:100]}... (Distance: {results['distances'][0][i]})")
-            distance = results['distances'][0][i]
 
-            results_str += f"{results['metadatas'][0][i]["link"]}\n"
+        for i, result in enumerate(dense_results["documents"][0]):
+            distance = dense_results['distances'][0][i]
+            link = dense_results['metadatas'][0][i]["link"]
+            logger.info(f"Result {i+1}: {link} (Distance: {distance})")
+
+            if link in sparse_results:
+                sparse_results[link]["score"] = sparse_results[link]["score"] * 2  # Boost the score if it exists in sparse results
+                logger.info(f"Updated score for {link}: {sparse_results[link]['score']}")
+                continue
+
+            links.add(link)
+            results_str += f"{dense_results['metadatas'][0][i]["link"]}\n"
         
         if results_str == "":
             results_str = "No results found."
-        return results_str.strip()  # Return the results as a string
+
+        final_result = [[x["link"], x["score"]] for x in sparse_results.values()]
+        final_result.sort(key=lambda x: x[1], reverse=True)
+        logger.info(f"Final results: {final_result}")
+        return "\n".join([x[0] for x in final_result])  # Return the results as a string
         
 
 if __name__ == "__main__":
