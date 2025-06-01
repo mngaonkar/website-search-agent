@@ -10,6 +10,8 @@ from common.logging_config import logger
 
 load_dotenv()
 MAX_RESULTS = os.environ.get("MAX_RESULTS")
+EMBEDDING_MODEL = os.environ.get("EMBEDDING_MODEL", "sentence-transformers/all-mpnet-base-v2")
+
 
 class QueryDatabaseToolInput(BaseModel):
     """
@@ -28,7 +30,7 @@ class QueryDatabaseTool(BaseTool):
     "Input should be a text."
     args_schema: Type[BaseModel] = QueryDatabaseToolInput
 
-    max_results: int = MAX_RESULTS  # Default maximum number of results to return
+    max_results: int = int(MAX_RESULTS)  # Default maximum number of results to return
     client: chromadb.PersistentClient = None # ChromaDB client instance
     collections: list = None  # List of collections in the database
     embedding_model: Optional[Type] = None  # Embeddings model, if needed
@@ -49,7 +51,7 @@ class QueryDatabaseTool(BaseTool):
         """
         return self._run(query)  # For simplicity, using the synchronous method in this example
     
-    def __init__(self, db_path: Optional[str] = None, max_results: int = 5):
+    def __init__(self, db_path: Optional[str] = None, max_results: int = int(MAX_RESULTS)):
         """
         Initialize the QueryDatabaseTool with a database path and maximum results.
         Args:
@@ -63,7 +65,7 @@ class QueryDatabaseTool(BaseTool):
         else:
             self.db_path = db_path
 
-        self.embedding_model = HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2")
+        self.embedding_model = HuggingFaceEmbeddings(model_name=EMBEDDING_MODEL)
     
     def _query_vector_store(self, query: str) -> list:
         """Function to query the vector store."""
@@ -91,8 +93,8 @@ class QueryDatabaseTool(BaseTool):
             # print(f"Result {i+1}:")
             # print(f"{result[:100]}... (Distance: {results['distances'][0][i]})")
             distance = results['distances'][0][i]
-            if distance < 1:
-                results_str += f"{results['metadatas'][0][i]["link"]}\n"
+
+            results_str += f"{results['metadatas'][0][i]["link"]}\n"
         
         if results_str == "":
             results_str = "No results found."

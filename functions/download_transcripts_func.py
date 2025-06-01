@@ -28,13 +28,19 @@ def download_transcripts_func(state: GraphState) -> None:
     hash_set = set()
 
     # Create the transcripts directory if it doesn't exist
-    if os.path.exists("transcripts"):
-        logger.info("Transcripts directory already exists, removing it.")
-        shutil.rmtree("transcripts")
+    if not os.path.exists("transcripts"):
+        logger.info("Transcripts directory does not exists, creating it.")
+        os.makedirs("transcripts")
+        logger.info("Created transcripts directory.")
+    else:
+        if os.path.exists("transcripts/blog_index.json"):
+            logger.info("Found existing blog_index.json, using it.")
+            blog_index = json.load(open("transcripts/blog_index.json", "r"))
 
-    os.makedirs("transcripts")
-    logger.info("Created transcripts directory.")
-
+            # Restore visited links from the blog index
+            for item in blog_index.values():
+                visited_links.add(item["link"])
+            logger.info(f"Restored {len(visited_links)} visited links from blog index.")
 
     # Traverse all the links and download the transcripts
     for link in links:

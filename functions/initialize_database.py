@@ -15,6 +15,7 @@ load_dotenv()
 DOC_LOCATION = os.environ.get("DOC_LOCATION")
 CHUNK_SIZE = int(os.environ.get("CHUNK_SIZE"))
 CHUNK_OVERLAP = int(os.environ.get("CHUNK_OVERLAP"))
+EMBEDDING_MODEL = os.environ.get("EMBEDDING_MODEL", "sentence-transformers/all-mpnet-base-v2")
 
 def initialize_database(state: GraphState) -> None:
     """
@@ -23,6 +24,7 @@ def initialize_database(state: GraphState) -> None:
     doc_location = DOC_LOCATION
 
     # Create a text splitter
+    logger.info(f"Creating text splitter with chunk size {CHUNK_SIZE} and overlap {CHUNK_OVERLAP}.")
     text_splitter = RecursiveCharacterTextSplitter(
         chunk_size=CHUNK_SIZE, 
         chunk_overlap=CHUNK_OVERLAP,
@@ -65,9 +67,8 @@ def initialize_database(state: GraphState) -> None:
             logger.error(f"Error removing existing Chroma database: {e}")
             raise
 
-
     # Initialize the vector store with the documents
-    embeddings = HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2")
+    embeddings = HuggingFaceEmbeddings(model_name=EMBEDDING_MODEL)
     vector_store = Chroma.from_documents(
         documents=doc_list,
         embedding=embeddings,
