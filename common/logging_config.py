@@ -1,6 +1,7 @@
 import logging
 
 logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
 
 file_handler = logging.FileHandler('website_search_agent.log')
 file_handler.setLevel(logging.INFO)

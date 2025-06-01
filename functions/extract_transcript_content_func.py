@@ -10,10 +10,10 @@ def extract_transcript_content_func(html_content: str) -> str:
     text_content = []
     matches = re.findall(r'DOCS_modelChunk\s=\s\[(.*?),\s*{', html_content, re.DOTALL)
     if matches is None:
-        logger.warn("No match found in the HTML content.")
+        logger.warning("No match found in the HTML content.")
         return ""
     else:
-        print("Match found in the HTML content.")
+        logger.info("Match found in the HTML content.")
         for match in matches:
             data = json.loads(match)
             if "s" in data:

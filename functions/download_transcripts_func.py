@@ -51,7 +51,7 @@ def download_transcripts_func(state: GraphState) -> None:
         transcript_link = extract_transcript_link_func(content)
         logger.info(f"transcript_link = {transcript_link}")
         if transcript_link is not None:
-            web_content = VisitWebPageSyncTool().invoke(input={"url":transcript_link, "clean_flag":False})
+            web_content = VisitWebPageSyncTool().invoke(input={"url":transcript_link, "clean_flag":True})
             transcript_content = extract_transcript_content_func(web_content)
 
             # Calculate hash of the transcript content to avoid duplicates

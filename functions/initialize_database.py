@@ -57,9 +57,13 @@ def initialize_database(state: GraphState) -> None:
     doc_list = [Document(page_content=json.dumps(doc["text"]), metadata=doc["metadata"]) for doc in documents]
 
     if os.path.exists("chroma_db"):
-        logger.warn("Chroma database already exists, removing it.")
-        # Remove the existing Chroma database directory
-        shutil.rmtree("chroma_db")
+        logger.warning("Chroma database already exists, removing it.")
+        try:
+            # Remove the existing Chroma database directory
+            shutil.rmtree("chroma_db")
+        except Exception as e:
+            logger.error(f"Error removing existing Chroma database: {e}")
+            raise
 
 
     # Initialize the vector store with the documents

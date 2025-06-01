@@ -68,8 +68,9 @@ class VisitWebPageSyncTool(BaseTool):
                     return content
             except Exception as e:
                 browser.close()
-                raise Exception(f"Error visiting webpage: {str(e)}")
-            
+                logger.error(f"Error visiting webpage: {str(e)}")
+                return ""
+                
     def _arun(self, url: str, 
              clean_flag=False, 
              run_manager: Optional[AsyncCallbackManagerForToolRun] = None) -> str:

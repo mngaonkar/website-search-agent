@@ -25,7 +25,7 @@ class CrawlWebPageSyncTool(BaseTool):
         return await crawl_web_page(url, max_depth)
     
 
-async def crawl_web_page(url: str, max_depth: int = 2) -> list:
+async def crawl_web_page(url: str, max_depth: int = 1) -> list:
     """Crawl a web page and return all links found up to a specified depth.
     Args:
         url (str): The URL of the web page to crawl.
@@ -67,7 +67,7 @@ async def crawl_web_page(url: str, max_depth: int = 2) -> list:
 
 async def main():
     url = "https://www.thecloudcast.net"
-    max_depth = 2
+    max_depth = 1
     links = await crawl_web_page(url, max_depth)
     logger.info(f"Crawled {len(links)} links from {url} up to depth {max_depth}.")
     for link in links:
